@@ -12,16 +12,25 @@
                 $('body').html("<h1>Error</h1><p>Your browser does not support HTML5 Web Sockets. Try Google Chrome instead.</p>");
             }
 
-            var socket = io.connect('http://10.13.94.75:6001/devicestat', { transports: ['websocket'], timeout: 1500 });
+            var socket = io.connect('http://localhost:6001/devicestat', { transports: ['websocket'], timeout: 1500 });
             //var socket = io.connect('http://10.13.94.75:6001/devicestat');
 
             socket.on('connect', function () {
                 socket.emit('connect_event', { data: 'connected!' });
+                socket.emit('ct_data', { eqp_id: Math.floor(Math.random() * 10) + 1 })
             })
 
             socket.on('server_response', function (msg) {
                 console.log(msg)
                 $('#log').append('<br>' + $('<div/>').text('Received #' + ': ' + msg.data).html());
+            });
+
+            socket.on('device_stat', function (msg) {
+                $('#log').append('<br>' + $('<div/>').text('Device Stat' + ': ' + msg.data).html());
+            });
+
+            socket.on('device_running_stat', function (msg) {
+                $('#log').append('<br>' + $('<div/>').text('Device Runinig Stat' + ': ' + msg.data).html());
             });
 
             $('form#emit').submit(function (event) {
@@ -34,7 +43,7 @@
 </head>
 
 <body>
-    <h2>WebSokect</h2>
+    <h2>WS-Device Data</h2>
     <form id="emit" method="POST" action='#'>
         <input type="text" name="emit_data" id="emit_data" placeholder="Message">
         <input type="submit" value="Echo">
