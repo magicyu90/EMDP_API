@@ -25,34 +25,36 @@ whole_room = {
 # room['ctlight'] = dict()
 ct_thread = None
 
+
 def query_device_ct_light_data():
     while True:
         socketio.sleep(5)
         for eqp_id in whole_room['ctlight']:
-            if r.hexists(eqp_id, 'ctlight'):
-                result = r.hget(eqp_id, 'ctlight')
+            if r.hexists(eqp_id, 'CT_LIGHT_MACHINE'):
+                result = r.hget(eqp_id, 'CT_LIGHT_MACHINE')
+                result_str = json.dumps(result)
             else:
-                compare_date = datetime.utcnow() - timedelta( minutes=1)
+                compare_date = datetime.utcnow() - timedelta(minutes=1)
                 pipeline = [
+                    {"$sort": {"clock": 1}},
                     {"$match": {"clock": {"$gt": compare_date}}},
                     {"$group": {"_id": "$name", "value": {"$push": {"clock": "$clock", "value": "$value"}}}},
                     {"$project": {"_id": 0, "type": "$_id", "value": 1}}
                 ]
-                res = list(db.ctlight.aggregate(pipeline))
-                result = {}
-                for item in res:
+                ctlight_res = list(db.ctlight.aggregate(pipeline))
+                result = dict()
+                for item in ctlight_res:
                     new_list = []
                     for v in item['value']:
                         new_list.append({
-                            'clock': v['clock'].strftime('%Y-%m-%d %H:%M:%S'),
+                            'clock': v['clock'].strftime('%Y-%m-%d %H:%M:%S.%f'),
                             'value': v['value']
                         })
                     result[item['type']] = new_list
-                r.hset(eqp_id, 'ctlight', result)
+                result_str = json.dumps(result)
+                r.hset(eqp_id, 'CT_LIGHT_MACHINE', result_str)
 
-            result_str = json.dumps(result)
-            socketio.emit('ctlight_data', {'data': result_str},
-                          namespace='/ctlight', room=eqp_id)
+            socketio.emit('ctlight_data', {'data': result_str}, namespace='/ctlight', room=eqp_id)
 
 
 def query_device_running_stat():
