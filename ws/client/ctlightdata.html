@@ -12,7 +12,7 @@
                 $('body').html("<h1>Error</h1><p>Your browser does not support HTML5 Web Sockets. Try Google Chrome instead.</p>");
             }
             device_id_str = (Math.floor(Math.random() * 5) + 1).toString()
-            var socket = io.connect('http://localhost:6001/ctlight', { query: "eqp_id=XT2001", transports: ['websocket'], timeout: 1500 });
+            var socket = io.connect('http://localhost:6001/CT_LIGHT_MACHINE', { query: "eqp_id=XT2001", transports: ['websocket'], timeout: 1500 });
 
             socket.on('connect', function () {
                 socket.emit('connect_event', { data: 'connected!' });

@@ -18,7 +18,7 @@ socketio = SocketIO(app)
 thread = None
 thread_lock = Lock()
 whole_room = {
-    "ctlight": {
+    "CT_LIGHT_MACHINE": {
 
     }
 }
@@ -29,7 +29,7 @@ ct_thread = None
 def query_device_ct_light_data():
     while True:
         socketio.sleep(5)
-        for eqp_id in whole_room['ctlight']:
+        for eqp_id in whole_room['CT_LIGHT_MACHINE']:
             if r.hexists(eqp_id, 'CT_LIGHT_MACHINE'):
                 result = r.hget(eqp_id, 'CT_LIGHT_MACHINE')
                 result_str = json.dumps(result)
@@ -54,7 +54,7 @@ def query_device_ct_light_data():
                 result_str = json.dumps(result)
                 r.hset(eqp_id, 'CT_LIGHT_MACHINE', result_str)
 
-            socketio.emit('ctlight_data', {'data': result_str}, namespace='/ctlight', room=eqp_id)
+            socketio.emit('ctlight_data', {'data': result_str}, namespace='/CT_LIGHT_MACHINE', room=eqp_id)
 
 
 def query_device_running_stat():
@@ -96,42 +96,42 @@ def shutdown():
     disconnect()
 
 
-@socketio.on('connect_event', namespace='/ctlight')
+@socketio.on('connect_event', namespace='/CT_LIGHT_MACHINE')
 def ct_ligth_connected_msg(msg):
     emit('server_response', {'data': msg['data']})
 
 
-@socketio.on('disconnect', namespace='/ctlight')
+@socketio.on('disconnect', namespace='/CT_LIGHT_MACHINE')
 def ctlightshutdown():
     print('ctlight data disconnect...')
-    for key in whole_room['ctlight'].keys():
-        if request.sid in whole_room['ctlight'][key]:
-            whole_room['ctlight'][key].remove(request.sid)
-            if len(whole_room['ctlight'][key]) == 0:
-                whole_room['ctlight'].pop(key, None)
+    for key in whole_room['CT_LIGHT_MACHINE'].keys():
+        if request.sid in whole_room['CT_LIGHT_MACHINE'][key]:
+            whole_room['CT_LIGHT_MACHINE'][key].remove(request.sid)
+            if len(whole_room['CT_LIGHT_MACHINE'][key]) == 0:
+                whole_room['CT_LIGHT_MACHINE'].pop(key, None)
             break
-    for room in rooms(namespace='/ctlight'):
-        leave_room(room, namespace='/ctlight')
+    for room in rooms(namespace='/CT_LIGHT_MACHINE'):
+        leave_room(room, namespace='/CT_LIGHT_MACHINE')
     disconnect()
-    print(whole_room['ctlight'])
+    print(whole_room['CT_LIGHT_MACHINE'])
 
 
-@socketio.on('connect', namespace='/ctlight')
+@socketio.on('connect', namespace='/CT_LIGHT_MACHINE')
 def ctlightconnect():
     print('%s connected in ctlight' % request.sid)
     eqp_id = request.args.get('eqp_id')
-    join_room(eqp_id, namespace='/ctlight')
+    join_room(eqp_id, namespace='/CT_LIGHT_MACHINE')
     if eqp_id is None:
         print('eqp_id is missing,disconnect...')
         disconnect()
 
-    if eqp_id not in whole_room['ctlight'].keys():
-        whole_room['ctlight'][eqp_id] = []
-        whole_room['ctlight'][eqp_id].append(request.sid)
+    if eqp_id not in whole_room['CT_LIGHT_MACHINE'].keys():
+        whole_room['CT_LIGHT_MACHINE'][eqp_id] = []
+        whole_room['CT_LIGHT_MACHINE'][eqp_id].append(request.sid)
     else:
-        whole_room['ctlight'][eqp_id].append(request.sid)
+        whole_room['CT_LIGHT_MACHINE'][eqp_id].append(request.sid)
 
-    print(whole_room['ctlight'])
+    print(whole_room['CT_LIGHT_MACHINE'])
     with thread_lock:
         global ct_thread
         if ct_thread is None:
