@@ -1,9 +1,8 @@
 from flask import Flask, Blueprint
-from flask_restful import reqparse, abort, Api, Resource
+from flask_restful import Api
 from api.resources.devicestat import DeviceStat
 from flask_restful_swagger import swagger
 
-api_bp = Blueprint('api', __name__)
-api = Api(api_bp)
-
-api.add_resource(DeviceStat, 'api/devicestat')
+emdp_blueprint1 = Blueprint('emdp_blueprint1', __name__)
+api = swagger.docs(Api(emdp_blueprint1), apiVersion='0.1', resourcePath='/', description='EMDP-API', api_spec_url='/swagger')
+api.add_resource(DeviceStat, '/devicestat')
