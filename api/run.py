@@ -1,6 +1,6 @@
 from flask import Flask
-from api.resources.devicestat import DeviceStatResourceFields
-from api.resources.route import emdp_blueprint1
+from src.resources.devicestat import DeviceStatResourceFields
+from src.resources.route import emdp_blueprint1
 from flask import Flask, Blueprint
 from flask_restful import Api
 from flask_restful_swagger import swagger

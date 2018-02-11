@@ -6,6 +6,7 @@ from pymongo import MongoClient
 from flask import Flask, render_template, session, request, copy_current_request_context, current_app
 from flask_socketio import SocketIO, emit, disconnect, join_room, leave_room, rooms
 from threading import Lock
+from util.redishelper import redis_decode,redis_types
 
 r = redis.StrictRedis(host='localhost', port=6379, charset="utf-8", decode_responses=True)  # Redis连接器
 mongo_client = MongoClient('mongodb://localhost:27017')  # mongo连接器
@@ -24,6 +25,52 @@ whole_room = {
 }
 # room['ctlight'] = dict()
 ct_thread = None
+
+########################### DEVICE_STAT ###########################
+
+
+def query_device_running_stat():
+    while True:
+        socketio.sleep(5)
+        if r.exists('DEVICE_EVENT_STAT'):
+            device_event_stat_in_python = redis_decode(redis_types['DEVICE_EVENT_STAT'], r.hgetall('DEVICE_EVENT_STAT'))
+            print(device_event_stat_in_python)
+            # 发送设备报警信息
+            socketio.emit('device_running_stat', {'data': device_event_stat_in_python}, namespace='/DEVICESTAT')
+        # TODO查询设备报警信息mongo中
+        if r.exists('DEVICE_STAT'):
+            # 发送设备运行状态
+            device_stat_values = list(r.hgetall('DEVICE_STAT').values())
+            normal_status_count = device_stat_values.count('1')
+            error_status_count = device_stat_values.count('2')
+            device_stat_dict = {'normal': normal_status_count, 'error': error_status_count}
+            #device_stat_str = json.dumps(device_stat_dict)
+            socketio.emit('device_stat', {'data': device_stat_dict}, namespace='/DEVICESTAT')
+        # TODO查询设备运行状态在mongo中
+
+
+@socketio.on('connect', namespace='/DEVICESTAT')
+def connect():
+    print('%s connected in DEVICESTAT' % request.sid)
+    global thread
+    with thread_lock:
+        if thread is None:
+            print('thread is none')
+            thread = socketio.start_background_task(target=query_device_running_stat)
+    emit('server_response', {'data': None, 'msg': 'client %s is connected' % request.sid, 'result': 100})
+
+
+@socketio.on('connect_event', namespace='/DEVICESTAT')
+def connected_msg(msg):
+    emit('server_response', {'data': msg['data']})
+
+
+@socketio.on('disconnect', namespace='/DEVICESTAT')
+def shutdown():
+    print('DEVICESTAT with sid:%s disconnect...' % request.sid)
+    disconnect()
+
+########################### CT_LIGHT_MACHINE ###########################
 
 
 def query_device_ct_light_data():
@@ -57,45 +104,6 @@ def query_device_ct_light_data():
             socketio.emit('ctlight_data', {'data': result_str}, namespace='/CT_LIGHT_MACHINE', room=eqp_id)
 
 
-def query_device_running_stat():
-    while True:
-        socketio.sleep(5)
-        if r.exists('DEVICE_EVENT_STAT'):
-            device_event_stat_str = json.dumps(r.hgetall('DEVICE_EVENT_STAT'))
-            # 发送设备报警信息
-            socketio.emit('device_running_stat', {'data': device_event_stat_str}, namespace='/devicestat')
-        if r.exists('DEVICE_STAT'):
-            # 发送设备运行状态
-            device_stat_values = list(r.hgetall('DEVICE_STAT').values())
-            normal_status_count = device_stat_values.count('1')
-            error_status_count = device_stat_values.count('2')
-            device_stat_dict = {'normal': normal_status_count, 'error': error_status_count}
-            device_stat_str = json.dumps(device_stat_dict)
-            socketio.emit('device_stat', {'data': device_stat_str}, namespace='/devicestat')
-
-
-@socketio.on('connect', namespace='/devicestat')
-def connect():
-    print('%s connected in devicestat' % request.sid)
-    global thread
-    with thread_lock:
-        if thread is None:
-            print('thread is none')
-            thread = socketio.start_background_task(target=query_device_running_stat)
-    emit('server_response', {'data': None, 'msg': 'client %s is connected' % request.sid})
-
-
-@socketio.on('connect_event', namespace='/devicestat')
-def connected_msg(msg):
-    emit('server_response', {'data': msg['data']})
-
-
-@socketio.on('disconnect', namespace='/devicestat')
-def shutdown():
-    print('devicestat disconnect...')
-    disconnect()
-
-
 @socketio.on('connect_event', namespace='/CT_LIGHT_MACHINE')
 def ct_ligth_connected_msg(msg):
     emit('server_response', {'data': msg['data']})
@@ -103,7 +111,7 @@ def ct_ligth_connected_msg(msg):
 
 @socketio.on('disconnect', namespace='/CT_LIGHT_MACHINE')
 def ctlightshutdown():
-    print('ctlight data disconnect...')
+    print('CT_LIGHT_MACHINE with sid:%s disconnect...' % request.sid)
     for key in whole_room['CT_LIGHT_MACHINE'].keys():
         if request.sid in whole_room['CT_LIGHT_MACHINE'][key]:
             whole_room['CT_LIGHT_MACHINE'][key].remove(request.sid)
@@ -120,11 +128,12 @@ def ctlightshutdown():
 def ctlightconnect():
     print('%s connected in ctlight' % request.sid)
     eqp_id = request.args.get('eqp_id')
-    join_room(eqp_id, namespace='/CT_LIGHT_MACHINE')
+
     if eqp_id is None:
         print('eqp_id is missing,disconnect...')
         disconnect()
 
+    join_room(eqp_id, namespace='/CT_LIGHT_MACHINE')
     if eqp_id not in whole_room['CT_LIGHT_MACHINE'].keys():
         whole_room['CT_LIGHT_MACHINE'][eqp_id] = []
         whole_room['CT_LIGHT_MACHINE'][eqp_id].append(request.sid)
@@ -136,7 +145,8 @@ def ctlightconnect():
         global ct_thread
         if ct_thread is None:
             ct_thread = socketio.start_background_task(target=query_device_ct_light_data)
-    emit('server_response', {'data': None, 'msg': 'client %s is connected' % request.sid})
+
+    emit('server_response', {'data': None, 'msg': 'client %s is connected' % request.sid, 'result': 100})
 
 
 if __name__ == '__main__':

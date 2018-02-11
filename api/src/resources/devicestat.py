@@ -2,8 +2,8 @@
 import json
 from flask import Flask, jsonify
 from flask_restful import Resource, Api, fields, marshal_with
-from ..db import session
-from ..models.equipements import Equipements
+from src.db import session
+from src.models.equipements import Equipements
 from flask_restful.fields import Fixed, marshal
 from decimal import Decimal
 from flask_restful_swagger import swagger

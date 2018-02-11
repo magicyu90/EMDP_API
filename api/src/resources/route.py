@@ -1,6 +1,6 @@
 from flask import Flask, Blueprint
 from flask_restful import Api
-from api.resources.devicestat import DeviceStat
+from src.resources.devicestat import DeviceStat
 from flask_restful_swagger import swagger
 
 emdp_blueprint1 = Blueprint('emdp_blueprint1', __name__)
