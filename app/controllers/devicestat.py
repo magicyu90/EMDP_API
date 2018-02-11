@@ -2,11 +2,12 @@
 import json
 from flask import Flask, jsonify
 from flask_restful import Resource, Api, fields, marshal_with
-from src.db import session
-from src.models.equipements import Equipements
+from app.models.db import session
+from app.models.equipements import Equipements
 from flask_restful.fields import Fixed, marshal
 from decimal import Decimal
 from flask_restful_swagger import swagger
+from app.util.common import ResponseHelper
 
 
 @swagger.model
@@ -29,7 +30,7 @@ class DeviceStat(Resource):
         nickname='get',
         responseClass=DeviceStatResourceFields
     )
-    @marshal_with(DeviceStatResourceFields.resource_fields)
+    #@marshal_with(DeviceStatResourceFields.resource_fields, envelope='hugo')
     def get(self):
         # TODO:获取设备总体情况
         equipements = session.query(Equipements).all()
@@ -44,4 +45,4 @@ class DeviceStat(Resource):
                 'type': item.Type
             })
 
-        return json_results
+        return ResponseHelper.returnTrueJson(marshal(json_results, DeviceStatResourceFields.resource_fields))
