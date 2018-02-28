@@ -18,5 +18,5 @@ class Equipments(Resource):
         responseClass=EquipmentResourceFields
     )
     def get(self):
-        res = self._equipmentManager.find_equipment()
-        return res
+        result = self._equipmentManager.find_equipment()
+        return result
